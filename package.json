@@ -1,0 +1,17 @@
+{
+  "name": "safety-management-ai-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "안전관리 시스템 정적 파일 제공 + AI 비서 백엔드 프록시 (Anthropic API 키를 서버에만 보관)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}
