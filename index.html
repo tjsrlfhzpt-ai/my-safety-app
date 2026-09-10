@@ -36,6 +36,7 @@
 
   /* ---------- 로그인 ---------- */
   #login { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+  #signup { min-height: 100vh; display: none; place-items: center; padding: 24px; }
   .login-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--line); padding: 32px; }
   .login-card h1 { font-size: 19px; margin: 0 0 2px; letter-spacing: -0.01em; }
   .login-card .sub { color: var(--ink-2); font-size: 13px; margin: 0 0 24px; }
@@ -137,11 +138,56 @@
   <div class="login-card">
     <h1>안전 미어캣</h1>
     <p class="sub">현장 안전관리 업무 시스템</p>
-    <label class="field"><span>서버 주소</span><input type="text" id="l-server" placeholder="https://example.onrender.com"></label>
+    <label class="field"><span>서버 주소</span><input type="text" id="l-server" placeholder="https://my-safety-app-3ow7.onrender.com"></label>
     <label class="field"><span>아이디</span><input type="text" id="l-id" autocomplete="username"></label>
     <label class="field"><span>비밀번호</span><input type="password" id="l-pw" autocomplete="current-password"></label>
     <button class="btn" style="width:100%" id="l-btn" onclick="App.login()">로그인</button>
     <div id="l-msg" class="msg" style="display:none"></div>
+    <p style="margin:16px 0 0;text-align:center;font-size:13px;color:var(--ink-2)">
+      계정이 없으신가요?
+      <button class="x" style="font-size:13px;color:var(--instruct);text-decoration:underline" onclick="Signup.open()">회원가입</button>
+    </p>
+  </div>
+</div>
+
+<!-- 회원가입 (2026-09-10 추가) -->
+<div id="signup">
+  <div class="login-card">
+    <h1>회원가입</h1>
+    <p class="sub">이름과 사용할 아이디만 입력하시면 됩니다.</p>
+
+    <label class="field"><span>이름</span><input type="text" id="su-name" autocomplete="name"></label>
+    <label class="field"><span>아이디</span><input type="text" id="su-id" autocomplete="username"></label>
+    <label class="field"><span>비밀번호</span><input type="password" id="su-pw" autocomplete="new-password" placeholder="8자 이상"></label>
+    <label class="field"><span>비밀번호 확인</span><input type="password" id="su-pw2" autocomplete="new-password"></label>
+
+    <!-- 초대코드는 기본적으로 숨겨둔다. 대부분의 사용자는 그냥 가입하면 되고,
+         회사 관리자에게 코드를 받은 사람만 펼쳐서 입력한다. -->
+    <p style="margin:4px 0 0;font-size:13px">
+      <button class="x" style="font-size:13px;color:var(--instruct);text-decoration:underline" onclick="Signup.toggleInvite()">
+        회사 초대코드가 있으신가요?
+      </button>
+    </p>
+
+    <div id="su-invite" style="display:none;margin-top:12px">
+      <label class="field"><span>초대코드</span>
+        <input type="text" id="su-code" maxlength="6" autocomplete="off" placeholder="영문·숫자 6자리" style="text-transform:uppercase;letter-spacing:2px">
+      </label>
+      <button class="btn" style="width:100%;background:transparent;border:1px solid var(--line);color:var(--ink)" id="su-code-btn" onclick="Signup.lookup()">회사 확인</button>
+      <div id="su-found" style="display:none;margin-top:12px">
+        <div style="padding:10px 12px;border-radius:10px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.3);margin-bottom:12px">
+          <div style="font-size:12px;color:var(--ink-2)">가입할 회사</div>
+          <div id="su-orgname" style="font-weight:700"></div>
+        </div>
+        <label class="field"><span>소속 사업장</span><select id="su-site"></select></label>
+      </div>
+    </div>
+
+    <button class="btn" style="width:100%;margin-top:16px" id="su-btn" onclick="Signup.submit()">가입하기</button>
+    <div id="su-msg" class="msg" style="display:none"></div>
+    <p style="margin:16px 0 0;text-align:center;font-size:13px;color:var(--ink-2)">
+      <button class="x" style="font-size:13px;color:var(--instruct);text-decoration:underline" onclick="Signup.close()">로그인 화면으로</button>
+    </p>
   </div>
 </div>
 
@@ -620,7 +666,15 @@ function fmt(v) {
 
 const Api = {
   BASE_KEY: 'sm_web_base', TOKEN_KEY: 'sm_web_token', USER_KEY: 'sm_web_user',
-  getBase() { return (localStorage.getItem(this.BASE_KEY) || '').replace(/\/$/, ''); },
+
+  // 2026-09-10: 실제 운영 서버 주소를 기본값으로 둔다(관제센터·PWA와 동일한 방식).
+  // 로그인 화면에서 다른 주소를 저장하면 그 값이 항상 이 기본값보다 우선한다.
+  DEFAULT_BASE: 'https://my-safety-app-3ow7.onrender.com',
+
+  getBase() {
+    const saved = (localStorage.getItem(this.BASE_KEY) || '').trim();
+    return (saved || this.DEFAULT_BASE).replace(/\/$/, '');
+  },
   getToken() { return localStorage.getItem(this.TOKEN_KEY) || ''; },
   getUser() { try { return JSON.parse(localStorage.getItem(this.USER_KEY) || 'null'); } catch (e) { return null; } },
   async request(method, path, body) {
@@ -632,6 +686,110 @@ const Api = {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `요청이 실패했습니다 (${res.status})`);
     return data;
+  },
+};
+
+// ============================================================
+// 회원가입 (2026-09-10)
+// ------------------------------------------------------------
+// 두 경로가 있다:
+//  (A) 기존 회사 합류 - 관리자에게 받은 가입코드로 회사/사업장을 찾아 worker로 가입
+//  (B) 새 회사 등록  - 회사를 만들고 그 첫 사용자가 되어 company_admin으로 시작
+//
+// 권한은 서버가 정한다(auth.js): 조직에 사용자가 0명일 때만 company_admin이 되고,
+// 그 외에는 무조건 worker다. 클라이언트가 역할을 지정할 방법은 없다.
+// ============================================================
+const Signup = {
+  orgId: null,   // 초대코드로 확인된 회사 (없으면 개인 작업공간으로 가입)
+  siteId: null,
+
+  open() {
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('signup').style.display = 'grid';
+    this.reset();
+  },
+  close() {
+    document.getElementById('signup').style.display = 'none';
+    // #login은 CSS에서 display:grid로 가운데 정렬된다 - ''로 되돌리면 레이아웃이 깨진다.
+    document.getElementById('login').style.display = 'grid';
+  },
+  reset() {
+    this.orgId = null; this.siteId = null;
+    document.getElementById('su-invite').style.display = 'none';
+    document.getElementById('su-found').style.display = 'none';
+    document.getElementById('su-msg').style.display = 'none';
+    ['su-name', 'su-id', 'su-pw', 'su-pw2', 'su-code']
+      .forEach((id) => { const el = document.getElementById(id); if (el) el.value = ''; });
+  },
+  toggleInvite() {
+    const el = document.getElementById('su-invite');
+    const opening = el.style.display === 'none';
+    el.style.display = opening ? '' : 'none';
+    // 접으면 확인해둔 회사도 취소한다 - 화면엔 안 보이는데 그 회사로 가입되면 안 된다.
+    if (!opening) { this.orgId = null; this.siteId = null; document.getElementById('su-found').style.display = 'none'; }
+  },
+
+  async lookup() {
+    const code = document.getElementById('su-code').value.trim().toUpperCase();
+    const msg = document.getElementById('su-msg');
+    const btn = document.getElementById('su-code-btn');
+    if (!code) { App.showMsg(msg, '초대코드를 입력해 주세요.'); return; }
+    btn.disabled = true; btn.textContent = '확인 중…';
+    try {
+      const r = await Api.request('GET', '/organizations/lookup?code=' + encodeURIComponent(code));
+      if (!r.sites || r.sites.length === 0) throw new Error('이 회사에 등록된 사업장이 없습니다. 관리자에게 문의해 주세요.');
+      this.orgId = r.orgId;
+      document.getElementById('su-orgname').textContent = r.orgName;
+      document.getElementById('su-site').innerHTML = r.sites.map((s) => `<option value="${s.id}">${s.name}</option>`).join('');
+      document.getElementById('su-found').style.display = '';
+      msg.style.display = 'none';
+    } catch (e) {
+      this.orgId = null;
+      App.showMsg(msg, e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '회사 확인';
+    }
+  },
+
+  async submit() {
+    const msg = document.getElementById('su-msg');
+    const btn = document.getElementById('su-btn');
+    const name = document.getElementById('su-name').value.trim();
+    const loginId = document.getElementById('su-id').value.trim();
+    const pw = document.getElementById('su-pw').value;
+    const pw2 = document.getElementById('su-pw2').value;
+
+    if (!name || !loginId || !pw) { App.showMsg(msg, '이름, 아이디, 비밀번호를 모두 입력해 주세요.'); return; }
+    if (pw.length < 8) { App.showMsg(msg, '비밀번호는 8자 이상이어야 합니다.'); return; }
+    if (pw !== pw2) { App.showMsg(msg, '비밀번호가 서로 일치하지 않습니다.'); return; }
+
+    btn.disabled = true; btn.textContent = '가입 중…';
+    try {
+      let orgId = this.orgId;
+      let siteId = orgId ? document.getElementById('su-site').value : null;
+
+      // 초대코드 없이 가입하면 본인 전용 작업공간을 자동으로 만든다. 사용자에게는
+      // 회사 개념이 전혀 노출되지 않지만, 내부적으로는 기존 조직 구조를 그대로
+      // 사용하므로 나중에 실제 회사로 합류하거나 동료를 초대해도 구조 변경이 없다.
+      if (!orgId) {
+        const created = await Api.request('POST', '/organizations', { name: `${name}의 작업공간`, siteName: '본사' });
+        orgId = created.orgId; siteId = created.siteId;
+      }
+
+      await Api.request('POST', '/auth/register', { orgId, siteId, loginId, password: pw, name });
+
+      // 가입 직후 바로 로그인시켜 준다 - 방금 입력한 정보를 또 입력하게 하지 않는다.
+      const r = await Api.request('POST', '/auth/login', { loginId, password: pw });
+      localStorage.setItem(Api.TOKEN_KEY, r.token);
+      localStorage.setItem(Api.USER_KEY, JSON.stringify(r.user));
+      document.getElementById('signup').style.display = 'none';
+      if (r.user.needsConsent) document.getElementById('consent').classList.add('on');
+      else App.enter();
+    } catch (e) {
+      App.showMsg(msg, e.message);
+    } finally {
+      btn.disabled = false; btn.textContent = '가입하기';
+    }
   },
 };
 
@@ -650,6 +808,7 @@ const App = {
     btn.disabled = true; btn.textContent = '연결 중…';
     try {
       const r = await Api.request('POST', '/auth/login', { loginId: id, password: pw });
+      localStorage.setItem('sm_web_last_login_id', id);
       localStorage.setItem(Api.TOKEN_KEY, r.token);
       localStorage.setItem(Api.USER_KEY, JSON.stringify(r.user));
       msg.style.display = 'none';
@@ -1039,8 +1198,11 @@ const App = {
 
 // 이미 로그인한 상태면 로그인 화면을 건너뜁니다.
 (function boot() {
-  const savedBase = localStorage.getItem(Api.BASE_KEY);
-  if (savedBase) document.getElementById('l-server').value = savedBase;
+  // getBase()는 저장값이 없으면 DEFAULT_BASE를 돌려주므로 입력칸이 항상 채워진다.
+  document.getElementById('l-server').value = Api.getBase();
+  // 2026-09-10: 마지막에 로그인했던 아이디를 다시 채워준다(비밀번호는 저장하지 않는다).
+  const lastId = localStorage.getItem('sm_web_last_login_id');
+  if (lastId) document.getElementById('l-id').value = lastId;
   if (Api.getToken() && Api.getUser()) {
     const u = Api.getUser();
     if (u.needsConsent) document.getElementById('consent').classList.add('on');
