@@ -1,0 +1,38 @@
+# 참고용 초안입니다. Fly.io 계정/CLI가 이 샌드박스에는 없어 실제 배포 테스트는
+# 못 했습니다. 그대로 쓰기보다는 이 리포지토리에서 `fly launch`를 실행해 최신 형식으로
+# 자동 생성된 fly.toml과 비교해보시고, 아래 mounts/checks 부분만 참고해 반영하시는 걸
+# 권장합니다 (README 3절 "배포 준비" 참고).
+
+app = "safety-meerkat-server"  # 본인 소유의 고유한 이름으로 변경
+primary_region = "nrt"          # 도쿄 - 한국에서 지연시간이 가장 짧은 리전 중 하나
+
+[build]
+
+[env]
+NODE_ENV = "production"
+PORT = "4000"
+DB_PATH = "/data/data.sqlite"
+
+# SQLite 파일을 재배포 후에도 보존하기 위한 영구 볼륨.
+# 사전에 `fly volumes create safety_meerkat_data --size 1` 로 생성해야 함.
+[[mounts]]
+source = "safety_meerkat_data"
+destination = "/data"
+
+[http_service]
+internal_port = 4000
+force_https = true
+auto_stop_machines = false
+auto_start_machines = true
+min_machines_running = 1
+
+[[http_service.checks]]
+grace_period = "10s"
+interval = "30s"
+method = "GET"
+path = "/health"
+timeout = "5s"
+
+# JWT_SECRET처럼 민감한 값은 이 파일이 아니라
+#   fly secrets set JWT_SECRET=실제값
+# 명령으로 별도 등록하세요 (fly.toml에 평문으로 넣지 않기 위함).

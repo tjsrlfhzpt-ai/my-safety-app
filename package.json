@@ -1,17 +1,29 @@
 {
-  "name": "safety-management-ai-backend",
-  "version": "1.0.0",
+  "name": "safety-meerkat-server",
+  "version": "0.1.0",
   "private": true,
-  "description": "안전관리 시스템 정적 파일 제공 + AI 비서 백엔드 프록시 (Anthropic API 키를 서버에만 보관)",
+  "description": "안전 미어캣 Pro - 서버 전환 1단계 (인증/조직/RBAC/감사로그/위험성평가-CAPA 코어)",
   "main": "server.js",
-  "scripts": {
-    "start": "node server.js"
-  },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
+  },
+  "scripts": {
+    "seed": "node -e \"require('./src/seed').ensureSeed(); console.log('시드 완료')\"",
+    "start": "node server.js",
+    "test:smoke": "node test/smoke-test.js",
+    "migrate:legacy": "node scripts/migrate-legacy.js"
   },
   "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.3.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.5",
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.7.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.3.0"
+  },
+  "devDependencies": {
+    "jsdom": "^30.0.1"
   }
 }
