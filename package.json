@@ -5,7 +5,7 @@
   "description": "안전 미어캣 Pro - 서버 전환 1단계 (인증/조직/RBAC/감사로그/위험성평가-CAPA 코어)",
   "main": "server.js",
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "scripts": {
     "seed": "node -e \"require('./src/seed').ensureSeed(); console.log('시드 완료')\"",
