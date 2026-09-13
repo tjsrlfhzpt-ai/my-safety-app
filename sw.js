@@ -9,7 +9,7 @@
    버전을 바꾸지 않으면 사용자 기기에 예전 버전이 계속 캐시된 채로
    남아 "업데이트했는데 옛날 화면이 보이는" 문제가 발생합니다.
    ============================================================ */
-const CACHE_VERSION = 'safe-ducky-shell-v22.0.0';
+const CACHE_VERSION = 'safe-ducky-shell-v23.0.0';
 
 const CORE_ASSETS = [
   './',

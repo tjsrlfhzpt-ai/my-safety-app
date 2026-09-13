@@ -1292,7 +1292,11 @@
                 <div class="bg-slate-100 rounded-2xl p-3.5 border border-slate-200 text-[11px] text-slate-600 space-y-1">
                     <div class="font-bold text-slate-800">SAFE DUCKY (세이프더키)</div>
                     <div>본 시스템은 KOSHA 가이드라인, 산업안전보건법 및 중대재해처벌법을 준수합니다.</div>
-                    <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-200 mt-2">v5.31 · © 2026 SAFE DUCKY</div>
+                    <div class="pt-2 border-t border-slate-200 mt-2">
+                        <button type="button" onclick="Utils.openShareDiagnostics()" class="w-full py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-[11px] font-bold rounded-xl transition-colors">🔎 공유 기능 진단</button>
+                        <p class="text-[10px] text-slate-400 mt-1.5 leading-relaxed">엑셀·백업 파일 공유가 실패할 때, 이 기기에서 무엇이 막혀 있는지 확인합니다.</p>
+                    </div>
+                    <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-200 mt-2">v5.32 · © 2026 SAFE DUCKY</div>
                 </div>
             </section>
 
@@ -1328,16 +1332,55 @@
         <!-- Modals & Toasts -->
         <div id="toast-container" class="absolute top-16 left-4 right-4 z-50 pointer-events-none flex flex-col gap-2"></div>
 
-        <!-- v5.31: 공유 준비 배너 (실기기 NotAllowedError 대응) — 아래 CSS/스크립트 주석 참고 -->
-        <div id="share-ready-banner" class="hidden absolute bottom-0 left-0 right-0 z-[60] p-3">
-            <div class="bg-slate-900 text-white rounded-2xl shadow-xl p-3.5 flex items-center gap-3 fade-in">
-                <span class="text-xl flex-shrink-0">📤</span>
-                <div class="flex-1 min-w-0">
-                    <p class="text-xs font-bold">공유 준비 완료</p>
-                    <p id="share-ready-filename" class="text-[10px] text-slate-300 truncate"></p>
+        <!-- v5.32: 파일 공유 모달. v5.31의 하단 배너를 대체합니다.
+             배너는 "다시 한번 탭하기"(사용자 활성화 재확보)만 제공해서, 그래도 실패하면
+             사용자가 막다른 길에 놓였습니다. 이 모달은 재시도 + 실패 사유 + 확실히 동작하는
+             대안(텍스트 공유 / 다운로드) + 원인 진단을 한 화면에 모두 담습니다. -->
+        <div id="modal-share" class="absolute inset-0 modal-backdrop flex items-end sm:items-center justify-center p-0 sm:p-4 hidden z-50">
+            <div class="bg-white w-full sm:max-w-xs rounded-t-3xl sm:rounded-2xl p-5 space-y-3 shadow-xl fade-in" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <h3 class="text-xs font-bold text-slate-800">📤 파일 공유</h3>
+                    <button onclick="Utils.cancelShareReady()" class="text-slate-400 hover:text-slate-700 text-sm font-bold p-1" aria-label="닫기">✕</button>
                 </div>
-                <button type="button" onclick="Utils.confirmShareReady()" class="flex-shrink-0 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl">지금 공유</button>
-                <button type="button" onclick="Utils.cancelShareReady()" class="flex-shrink-0 w-8 h-8 bg-white/10 hover:bg-white/20 text-white rounded-full flex items-center justify-center text-xs font-bold">✕</button>
+                <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                    <p id="share-modal-filename" class="text-[11px] font-bold text-slate-800 break-all"></p>
+                    <p id="share-modal-filesize" class="text-[10px] text-slate-500 mt-0.5"></p>
+                </div>
+                <button type="button" id="share-modal-primary" onclick="Utils.confirmShareReady()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-colors">📤 지금 공유하기</button>
+                <div id="share-modal-status" class="hidden text-[10px] leading-relaxed rounded-xl p-2.5 border"></div>
+                <div class="pt-2 border-t border-slate-100 space-y-2">
+                    <p class="text-[10px] text-slate-500">파일 공유가 계속 안 되면 아래 방법으로 보낼 수 있습니다.</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" id="share-modal-text-btn" onclick="Utils.shareAsTextFallback()" class="py-2 bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold rounded-xl transition-colors">📄 텍스트로 공유</button>
+                        <button type="button" onclick="Utils.downloadPendingShare()" class="py-2 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition-colors">💾 파일 다운로드</button>
+                    </div>
+                    <button type="button" onclick="Utils.openShareDiagnostics()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold rounded-xl transition-colors">🔎 공유 기능 진단 (원인 확인)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- v5.32: 공유 기능 진단 모달. Web Share API 표준이 정의한 NotAllowedError의 원인은
+             ①권한 정책 차단 ②사용자 동작(활성화) 만료 ③파일 형식 보안 차단 세 가지뿐인데,
+             navigator.canShare()는 ③을 검사하지 않아 "canShare는 true인데 share는 실패"가
+             발생할 수 있습니다. 아래 3단계 테스트로 셋 중 무엇인지 실제 기기에서 판별합니다. -->
+        <div id="modal-share-diag" class="absolute inset-0 modal-backdrop flex items-end sm:items-center justify-center p-0 sm:p-4 hidden z-50">
+            <div class="bg-white w-full sm:max-w-xs rounded-t-3xl sm:rounded-2xl p-5 space-y-3 shadow-xl fade-in max-h-[92%] overflow-y-auto no-scrollbar" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <h3 class="text-xs font-bold text-slate-800">🔎 공유 기능 진단</h3>
+                    <button onclick="Modal.close('modal-share-diag')" class="text-slate-400 hover:text-slate-700 text-sm font-bold p-1" aria-label="닫기">✕</button>
+                </div>
+                <p class="text-[10px] text-slate-500 leading-relaxed">아래 1→2→3을 차례로 눌러주세요. 공유창이 뜨면 그냥 닫으셔도 됩니다(뜨는 것 자체가 성공입니다). 결과가 아래에 기록되며, 이 화면을 캡처해 보내주시면 원인을 정확히 특정할 수 있습니다.</p>
+                <div class="space-y-1.5">
+                    <button type="button" onclick="Utils.runShareDiag('text')" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition-colors">1) 텍스트 공유 테스트</button>
+                    <button type="button" onclick="Utils.runShareDiag('txt')" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition-colors">2) 텍스트파일(.txt) 공유 테스트</button>
+                    <button type="button" onclick="Utils.runShareDiag('xlsx')" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition-colors">3) 엑셀파일(.xlsx) 공유 테스트</button>
+                </div>
+                <div id="share-diag-results" class="space-y-1"></div>
+                <div>
+                    <p class="text-[10px] font-bold text-slate-700 mb-1">실행 환경</p>
+                    <pre id="share-diag-env" class="text-[9px] leading-relaxed bg-slate-900 text-slate-100 rounded-xl p-2.5 whitespace-pre-wrap break-all"></pre>
+                </div>
+                <button type="button" onclick="Utils.copyShareDiag()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold rounded-xl transition-colors">📋 진단 결과 복사</button>
             </div>
         </div>
 
@@ -1480,7 +1523,7 @@
                     <button onclick="Actions.clearAppCache()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-xl transition-colors">🧹 캐시 삭제 후 새로고침</button>
                     <p class="text-[10px] text-slate-400 leading-tight">등록된 위험성평가·업무 등 데이터는 지워지지 않습니다. 앱 화면 파일만 다시 받아와 오래된 화면이 남아있는 문제를 해결할 때 씁니다.</p>
                 </div>
-                <p class="text-[10px] text-slate-400 leading-tight pt-2 border-t border-slate-100">사업장 정보·API 키·백업/복원·감사로그 등은 하단 <b>마이페이지</b> 탭에서 관리합니다.<br>SAFE DUCKY v5.31 · DB v39</p>
+                <p class="text-[10px] text-slate-400 leading-tight pt-2 border-t border-slate-100">사업장 정보·API 키·백업/복원·감사로그 등은 하단 <b>마이페이지</b> 탭에서 관리합니다.<br>SAFE DUCKY v5.32 · DB v39</p>
             </div>
         </div>
 
@@ -1916,7 +1959,10 @@
 
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 if (mode === 'share') {
-                    const result = await this.shareBlob(blob, `${filename}.csv`, 'text/csv;charset=utf-8;', `${filename}.csv`);
+                    // v5.32: File의 타입에는 파라미터 없는 'text/csv'를 씁니다. 'text/csv;charset=utf-8;'
+                    // 처럼 파라미터가 붙은 문자열은 브라우저의 공유 가능 형식 대조에서 걸러질 수 있습니다
+                    // (Blob 자체의 타입은 기존 그대로 두어 다운로드 동작은 변하지 않습니다).
+                    const result = await this.shareBlob(blob, `${filename}.csv`, 'text/csv', `${filename}.csv`, csvContent);
                     if (result === 'shared') Toast.show(`${filename}.csv 공유를 완료했습니다.`, 'success');
                 } else {
                     this.downloadBlob(blob, `${filename}.csv`);
@@ -2004,47 +2050,52 @@
             // 그래도 안 되면(기기가 파일 공유 자체를 지원하지 않는 경우) 아래에서 실패 사유를
             // 명확히 구분해 토스트로 알리고, "엑셀출력" 버튼(항상 보장되는 다운로드)으로 안내합니다.
             //
-            // v5.31: 실기기에서 위 MIME 재시도까지 적용한 뒤에도 "공유에 실패했습니다(NotAllowedError)"
-            // 로 계속 실패한다는 제보를 받았습니다. NotAllowedError는 브라우저의 Web Share API가
-            // "사용자 활성화(user activation, 탭한 순간부터 약 5초)"가 만료된 뒤에 호출되면 정확히
-            // 이 오류를 던지는 표준 동작입니다 — 즉 위험성평가·작업허가서·TBM처럼 서식이 복잡해
-            // 셀 스타일링·병합·(TBM은 서명 이미지) 삽입에 시간이 걸리는 엑셀을 만드는 동안 "탭한 순간"의
-            // 활성화가 소진되어, 정작 navigator.share()를 부를 때는 이미 브라우저가 "사용자가 방금
-            // 누른 게 아니다"라고 판단해 거부하는 것입니다(반면 텍스트만 공유하는 헤더 공유는 즉시
-            // 실행되어 이 문제가 없었던 것과 정확히 일치). 이 문제는 파일 생성 속도를 개선해도 기기
-            // 성능에 따라 다시 재현될 수 있어 근본적으로는 "파일이 준비된 시점에 사용자가 다시 한번
-            // 탭하게 만드는" 방식으로만 확실히 해결됩니다.
+            // ============================================================
+            // v5.32: 공유 실패(NotAllowedError) 재제보에 따른 재설계
+            // ------------------------------------------------------------
+            // v5.31에서는 "사용자 활성화 만료"를 원인으로 보고 하단 배너로 재탭을 유도했는데,
+            // 실기기에서 배너를 눌러 재시도한 뒤에도 같은 NotAllowedError가 계속 발생했습니다.
+            // 즉 활성화 만료는 (원인이더라도) 유일한 원인이 아닙니다.
             //
-            // 그래서 우선 즉시 한 번 시도해보고(파일 생성이 빨랐다면 이 한 번으로 끝나 기존과 동일하게
-            // 탭 1번으로 공유됨), 그 시도가 실패하면 화면 하단에 "📤 지금 공유" 배너를 띄워 사용자의
-            // 진짜 새 클릭으로 다시 시도합니다 — 그 클릭 자체가 새로운 사용자 활성화이므로 파일 생성이
-            // 아무리 오래 걸렸어도 활성화 만료 없이 공유 시트가 뜹니다.
-            async shareBlob(blob, filename, mimeType, shareText) {
+            // Web Share API 표준(w3c.github.io/web-share, MDN)이 정의하는 NotAllowedError의
+            // 원인은 정확히 다음 세 가지뿐입니다.
+            //   ① web-share 권한 정책(Permissions Policy)에 의해 차단됨
+            //   ② 창에 사용자 활성화(transient activation)가 없음
+            //   ③ 파일 공유가 "보안상의 이유로 차단됨"(브라우저가 허용하지 않는 파일 형식)
+            // 중요한 점: navigator.canShare()는 ③을 검사하지 않습니다. 그래서 canShare()가
+            // true를 돌려줘도 share()가 NotAllowedError로 거부될 수 있습니다 — 지금 증상과
+            // 정확히 일치합니다(탭 1번/2번 모두 실패, 텍스트 공유는 성공).
+            //
+            // 이 세 가지는 앱 코드만으로는 구분할 수 없고(브라우저가 이유를 알려주지 않음),
+            // 실기기에서만 판별됩니다. 그래서 v5.32는 두 갈래로 접근합니다.
+            //   (가) 무엇이 원인이든 사용자가 목적을 달성하게 한다 — 실패 시 모달에서
+            //        "텍스트로 공유"(Level 1, 이 기기에서 동작 확인됨)와 "파일 다운로드"를
+            //        즉시 제공해 막다른 길을 없앱니다.
+            //   (나) 원인을 확정한다 — "공유 기능 진단"(runShareDiag)으로 텍스트 / .txt 파일 /
+            //        .xlsx 파일 3단계를 실기기에서 직접 시험해 ①②③ 중 무엇인지 판별합니다.
+            //
+            // 또한 v5.31까지는 canShare({files})로 검사한 뒤 share({files,title,text})로 보내
+            // "검사한 것과 실제로 보낸 것이 다른" 문제가 있었습니다. v5.32는 표준 형태인
+            // {files:[file]} 하나로 통일해 검사와 전송을 일치시킵니다.
+            // ============================================================
+            _pendingShare: null,
+            _lastShareError: null,
+            // blob을 공유 가능한 File로 만듭니다. canShare가 정확한 MIME을 거부하는 기기가
+            // 있어 일반 타입으로도 시도해봅니다(이 단계는 ③ 형식차단까지는 걸러내지 못합니다).
+            _makeShareableFile(blob, filename, mimeType) {
                 const candidateTypes = [mimeType || blob.type, 'application/octet-stream', ''];
-                let file = null;
                 for (const t of candidateTypes) {
                     let candidate;
                     try { candidate = t ? new File([blob], filename, { type: t }) : new File([blob], filename); } catch (e) { continue; }
-                    if (navigator.canShare && navigator.canShare({ files: [candidate] })) { file = candidate; break; }
+                    if (navigator.canShare && navigator.canShare({ files: [candidate] })) return candidate;
                 }
-
-                if (!file) {
-                    Toast.show('이 브라우저/기기에서는 파일 공유 자체가 지원되지 않습니다(기기 제한). "엑셀출력" 버튼으로 다운로드해주세요.', 'error');
-                    return 'unsupported';
-                }
-
-                const firstTry = await this._tryShareNow(file, shareText);
-                if (firstTry === 'shared' || firstTry === 'cancelled') return firstTry;
-                // 즉시 시도가 실패(대부분 활성화 만료) → 배너로 재시도 유도.
-                return this._waitForShareReadyTap(file, shareText, filename);
+                return null;
             },
-            // navigator.share()를 실제로 호출하는 부분만 분리 — 토스트는 호출한 쪽(shareBlob 최초
-            // 시도는 조용히 배너로 넘어가고, confirmShareReady의 재시도만 최종 결과를 토스트로 알림)에서 표시합니다.
-            async _tryShareNow(file, shareText) {
+            // navigator.share()를 실제로 호출하는 부분. 반드시 사용자 클릭 핸들러 안에서
+            // await 없이 곧바로 호출되어야 활성화가 유지됩니다(원인 ② 방지).
+            async _tryShareNow(file) {
                 try {
-                    const payload = { files: [file] };
-                    if (shareText) { payload.title = shareText; payload.text = shareText; }
-                    await navigator.share(payload);
+                    await navigator.share({ files: [file] });
                     return 'shared';
                 } catch (e) {
                     if (e && e.name === 'AbortError') return 'cancelled';
@@ -2053,40 +2104,265 @@
                     return 'failed';
                 }
             },
-            _pendingShare: null,
-            _waitForShareReadyTap(file, shareText, filename) {
+            // 반환값: 'shared'(파일 공유 성공) | 'shared-text'(텍스트로 대신 공유) |
+            //         'downloaded' | 'cancelled' | 'failed'
+            // 호출한 쪽은 'shared'일 때만 "파일을 공유했습니다"라고 말해야 합니다
+            // (실제로 하지 않은 일을 했다고 표시하지 않기 위함 — 프로젝트 원칙 1번).
+            async shareBlob(blob, filename, mimeType, shareText, textFallback) {
+                const file = this._makeShareableFile(blob, filename, mimeType);
+                if (file) {
+                    // 파일 생성이 빨랐다면 이 한 번으로 끝나 탭 1번에 공유됩니다.
+                    const firstTry = await this._tryShareNow(file);
+                    if (firstTry === 'shared' || firstTry === 'cancelled') return firstTry;
+                }
+                return this._awaitShareDecision({ blob, file, filename, mimeType, textFallback });
+            },
+            _awaitShareDecision(ctx) {
                 return new Promise((resolve) => {
-                    // 이전에 띄워둔 배너가 아직 남아있다면(연달아 다른 항목을 공유한 경우) 그 배너는
-                    // 취소 처리하고 새 배너로 교체합니다 — Promise가 영원히 안 끝난 채 남지 않도록.
-                    if (this._pendingShare) this._pendingShare.resolve('cancelled');
-                    this._pendingShare = { file, shareText, filename, resolve };
-                    const banner = document.getElementById('share-ready-banner');
-                    const nameEl = document.getElementById('share-ready-filename');
-                    if (nameEl) nameEl.textContent = filename;
-                    if (banner) banner.classList.remove('hidden');
+                    // 이전 모달이 아직 열려 있다면(연달아 다른 항목을 공유한 경우) 취소 처리해
+                    // Promise가 영원히 끝나지 않은 채 남지 않도록 합니다.
+                    if (this._pendingShare && this._pendingShare.resolve) this._pendingShare.resolve('cancelled');
+                    this._pendingShare = Object.assign({}, ctx, { resolve });
+                    this._renderShareModal();
+                    Modal.open('modal-share');
                 });
             },
-            // "📤 지금 공유" 버튼의 클릭 핸들러 — 이 클릭 자체가 새 사용자 활성화이므로 파일 생성이
-            // 아무리 오래 걸렸어도 여기서는 navigator.share()가 활성화 만료 없이 정상 동작해야 합니다.
-            async confirmShareReady() {
-                const pending = this._pendingShare;
-                const banner = document.getElementById('share-ready-banner');
-                if (banner) banner.classList.add('hidden');
-                if (!pending) return;
+            _renderShareModal() {
+                const p = this._pendingShare;
+                if (!p) return;
+                const nameEl = document.getElementById('share-modal-filename');
+                const sizeEl = document.getElementById('share-modal-filesize');
+                const primary = document.getElementById('share-modal-primary');
+                const textBtn = document.getElementById('share-modal-text-btn');
+                if (nameEl) nameEl.textContent = p.filename || '';
+                if (sizeEl) sizeEl.textContent = p.blob ? `${Math.max(1, Math.round(p.blob.size / 1024))}KB` : '';
+                // 파일 공유 자체가 불가능한 환경이면 재시도 버튼을 눌러도 의미가 없으므로 감춥니다.
+                if (primary) primary.classList.toggle('hidden', !p.file);
+                // 텍스트 대안은 실제로 보낼 내용이 있을 때만 제공합니다(빈 내용을 보내지 않기 위함).
+                if (textBtn) textBtn.classList.toggle('hidden', !p.textFallback);
+                this._setShareModalStatus(
+                    p.file ? 'info' : 'error',
+                    p.file
+                        ? '파일이 준비되었습니다. 위 버튼을 눌러 공유해주세요.'
+                        : '이 브라우저·기기는 파일 공유(Web Share Level 2) 자체를 지원하지 않습니다. 아래 대안을 이용해주세요.'
+                );
+            },
+            _setShareModalStatus(kind, html) {
+                const el = document.getElementById('share-modal-status');
+                if (!el) return;
+                const styles = {
+                    info: 'bg-slate-50 border-slate-200 text-slate-600',
+                    error: 'bg-rose-50 border-rose-200 text-rose-700',
+                    success: 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                };
+                el.className = `text-[10px] leading-relaxed rounded-xl p-2.5 border ${styles[kind] || styles.info}`;
+                el.innerHTML = html;
+                el.classList.remove('hidden');
+            },
+            _closeShareModal(result) {
+                const p = this._pendingShare;
                 this._pendingShare = null;
-                const res = await this._tryShareNow(pending.file, pending.shareText);
-                // 성공 토스트는 원래 shareBlob()과 마찬가지로 호출한 쪽(Actions.exportBackupJSON 등)이
-                // "공유했습니다" 문구를 직접 표시하므로 여기서는 중복으로 띄우지 않습니다. 실패는
-                // shareBlob()의 최초 시도가 실패했을 때와 동일하게 여기서 한 번만 알립니다.
-                if (res === 'failed') Toast.show(`공유에 실패했습니다(${this._lastShareError && this._lastShareError.name ? this._lastShareError.name : '오류'}). "엑셀출력" 버튼으로 다운로드해주세요.`, 'error');
-                pending.resolve(res);
+                Modal.close('modal-share');
+                if (p && p.resolve) p.resolve(result);
+            },
+            // "지금 공유하기" — 이 클릭 자체가 새로운 사용자 활성화입니다(원인 ② 해소).
+            // 그래도 실패하면 모달을 닫지 않고 사유와 대안을 그 자리에서 보여줍니다.
+            async confirmShareReady() {
+                const p = this._pendingShare;
+                if (!p || !p.file) return;
+                const res = await this._tryShareNow(p.file);
+                if (res === 'shared') { this._closeShareModal('shared'); return; }
+                if (res === 'cancelled') { this._closeShareModal('cancelled'); return; }
+                const name = (this._lastShareError && this._lastShareError.name) || '오류';
+                const why = name === 'NotAllowedError'
+                    ? '이 기기·브라우저가 파일 공유를 거부했습니다. 표준상 원인은 ①권한 정책 차단 ②사용자 동작 만료 ③파일 형식 보안 차단 셋 중 하나이며, 방금 직접 누르셨으므로 ②는 아닙니다. 아래 <b>공유 기능 진단</b>으로 정확한 원인을 확인할 수 있습니다.'
+                    : '파일 공유가 실패했습니다. 아래 대안을 이용해주세요.';
+                this._setShareModalStatus('error', `공유 실패 (${Utils.escapeHTML(name)}) · ${APP_VERSION}<br>${why}`);
+            },
+            // 파일이 안 되면 내용을 텍스트로라도 보냅니다. 텍스트 공유(Web Share Level 1)는
+            // 파일 공유보다 지원 범위가 훨씬 넓고, 이 사용자의 기기에서 동작이 확인된 방식입니다.
+            async shareAsTextFallback() {
+                const p = this._pendingShare;
+                if (!p || !p.textFallback) return;
+                try {
+                    await navigator.share({ text: p.textFallback });
+                    Toast.show('내용을 텍스트로 공유했습니다(파일이 아닌 요약 텍스트입니다).', 'success');
+                    this._closeShareModal('shared-text');
+                } catch (e) {
+                    if (e && e.name === 'AbortError') return; // 사용자가 공유창을 닫음 — 모달 유지
+                    this._lastShareError = e;
+                    this._setShareModalStatus('error', `텍스트 공유도 실패했습니다 (${Utils.escapeHTML((e && e.name) || '오류')}). "파일 다운로드"를 이용해주세요.`);
+                }
+            },
+            downloadPendingShare() {
+                const p = this._pendingShare;
+                if (!p || !p.blob) return;
+                this.downloadBlob(p.blob, p.filename);
+                Toast.show(`${p.filename} 다운로드했습니다. 카카오톡 등에서 "파일 첨부"로 보내실 수 있습니다.`, 'success');
+                this._closeShareModal('downloaded');
             },
             cancelShareReady() {
-                const banner = document.getElementById('share-ready-banner');
-                if (banner) banner.classList.add('hidden');
-                const pending = this._pendingShare;
-                this._pendingShare = null;
-                if (pending) pending.resolve('cancelled');
+                this._closeShareModal('cancelled');
+            },
+            // ===== 공유 기능 진단 =====
+            // 표준이 정의한 3가지 원인 중 무엇인지 실기기에서 판별하기 위한 단계별 시험입니다.
+            //  1) 텍스트 공유 성공 + 2) .txt 파일 실패  → 파일 공유 자체가 막힌 환경
+            //  1) 2) 성공 + 3) .xlsx 실패             → ③ 엑셀 형식이 보안상 차단됨
+            //  1)부터 실패                            → ① 권한 정책/오리진 문제(예: file:// 로 열기)
+            _shareDiagResults: [],
+            openShareDiagnostics() {
+                this._shareDiagResults = [];
+                Modal.open('modal-share-diag');
+                this._renderShareDiag();
+            },
+            _shareDiagEnv() {
+                let inIframe;
+                try { inIframe = window.self !== window.top; } catch (e) { inIframe = true; }
+                const canShareOf = (payload) => {
+                    try { return navigator.canShare ? String(navigator.canShare(payload)) : '메서드 없음'; }
+                    catch (e) { return '오류: ' + ((e && e.name) || ''); }
+                };
+                let txtFile = null, xlsxFile = null;
+                try { txtFile = new File(['t'], '테스트.txt', { type: 'text/plain' }); } catch (e) { /* 무시 */ }
+                try { xlsxFile = new File([new Uint8Array([80, 75, 3, 4])], '테스트.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }); } catch (e) { /* 무시 */ }
+                return {
+                    '앱 버전': APP_VERSION,
+                    '실행 주소': location.protocol + '//' + (location.host || '(호스트 없음)'),
+                    '오리진': location.origin && location.origin !== 'null' ? location.origin : '없음(opaque)',
+                    '보안 컨텍스트': String(window.isSecureContext),
+                    'iframe 내부': inIframe ? '예' : '아니오',
+                    '홈화면 설치 실행': (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) ? '예' : '아니오',
+                    'navigator.share': navigator.share ? '있음' : '없음',
+                    'navigator.canShare': navigator.canShare ? '있음' : '없음',
+                    'canShare(텍스트)': canShareOf({ text: 'test' }),
+                    'canShare(.txt)': txtFile ? canShareOf({ files: [txtFile] }) : 'File 생성 실패',
+                    'canShare(.xlsx)': xlsxFile ? canShareOf({ files: [xlsxFile] }) : 'File 생성 실패',
+                    'UA': navigator.userAgent
+                };
+            },
+            _renderShareDiag() {
+                const envEl = document.getElementById('share-diag-env');
+                if (envEl) {
+                    const env = this._shareDiagEnv();
+                    envEl.textContent = Object.keys(env).map(k => `${k}: ${env[k]}`).join('\n');
+                }
+                const resEl = document.getElementById('share-diag-results');
+                if (!resEl) return;
+                if (!this._shareDiagResults.length) {
+                    resEl.innerHTML = '<p class="text-[10px] text-slate-400 text-center py-1">아직 테스트하지 않았습니다</p>';
+                    return;
+                }
+                resEl.innerHTML = this._shareDiagResults.map(r => {
+                    const ok = r.result.indexOf('성공') === 0;
+                    const cls = ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800';
+                    return `<div class="text-[10px] rounded-xl px-2.5 py-1.5 border ${cls}"><b>${Utils.escapeHTML(r.label)}</b><br>${Utils.escapeHTML(r.result)}</div>`;
+                }).join('');
+            },
+            _pushShareDiag(label, result) {
+                this._shareDiagResults = this._shareDiagResults.filter(r => r.label !== label);
+                this._shareDiagResults.push({ label, result });
+                this._renderShareDiag();
+            },
+            async _tinyXlsxBlob() {
+                if (typeof ExcelJS === 'undefined') return null;
+                const wb = new ExcelJS.Workbook();
+                const ws = wb.addWorksheet('테스트');
+                ws.getCell('A1').value = 'SAFE DUCKY 공유 테스트';
+                const buffer = await wb.xlsx.writeBuffer();
+                return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            },
+            async runShareDiag(kind) {
+                const labels = { text: '1) 텍스트 공유', txt: '2) .txt 파일 공유', xlsx: '3) .xlsx 파일 공유' };
+                const label = labels[kind] || kind;
+                if (!navigator.share) { this._pushShareDiag(label, '실패: 이 브라우저에 navigator.share 자체가 없습니다'); return; }
+                let payload;
+                try {
+                    if (kind === 'text') {
+                        payload = { text: 'SAFE DUCKY 공유 테스트' };
+                    } else if (kind === 'txt') {
+                        payload = { files: [new File(['SAFE DUCKY 공유 테스트'], '공유테스트.txt', { type: 'text/plain' })] };
+                    } else {
+                        // .xlsx는 실제 내보내기와 동일한 방식으로 만든 아주 작은 파일로 시험합니다.
+                        const blob = await this._tinyXlsxBlob();
+                        if (!blob) { this._pushShareDiag(label, '실패: 엑셀 라이브러리를 불러오지 못했습니다'); return; }
+                        payload = { files: [new File([blob], '공유테스트.xlsx', { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })] };
+                    }
+                } catch (e) {
+                    this._pushShareDiag(label, `실패: 테스트 파일 생성 오류 (${(e && e.name) || ''})`);
+                    return;
+                }
+                if (payload.files && navigator.canShare && !navigator.canShare(payload)) {
+                    this._pushShareDiag(label, '실패: canShare=false — 브라우저가 이 형식의 파일 공유를 지원하지 않음');
+                    return;
+                }
+                try {
+                    await navigator.share(payload);
+                    this._pushShareDiag(label, '성공 (공유창이 열렸습니다)');
+                } catch (e) {
+                    const nm = (e && e.name) || '오류';
+                    // 사용자가 공유창을 닫은 것도 "공유창이 떴다"는 뜻이므로 성공으로 봅니다.
+                    if (nm === 'AbortError') this._pushShareDiag(label, '성공 (공유창이 열렸고 사용자가 닫음)');
+                    else this._pushShareDiag(label, `실패: ${nm} — ${(e && e.message) || ''}`);
+                }
+            },
+            shareDiagText() {
+                const env = this._shareDiagEnv();
+                const envText = Object.keys(env).map(k => `${k}: ${env[k]}`).join('\n');
+                const resText = this._shareDiagResults.length
+                    ? this._shareDiagResults.map(r => `${r.label}: ${r.result}`).join('\n')
+                    : '(테스트 실행 안 함)';
+                return `[SAFE DUCKY 공유 진단]\n${envText}\n\n[테스트 결과]\n${resText}`;
+            },
+            async copyShareDiag() {
+                const text = this.shareDiagText();
+                try {
+                    // file:// 등에서는 클립보드 API가 막혀 있을 수 있어 실패를 정상 처리합니다.
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(text);
+                        Toast.show('진단 결과를 복사했습니다.', 'success');
+                        return;
+                    }
+                    throw new Error('clipboard unavailable');
+                } catch (e) {
+                    Toast.show('복사가 지원되지 않는 환경입니다. 이 화면을 캡처해서 보내주세요.', 'error');
+                }
+            },
+            // ExcelJS 워크북을 읽을 수 있는 텍스트로 변환합니다(파일 공유가 막혔을 때의 대안).
+            // 카카오톡 등으로 보내기 적당하도록 길이를 제한합니다.
+            workbookToText(wb, maxChars = 2500) {
+                try {
+                    if (!wb || typeof wb.eachSheet !== 'function') return '';
+                    const lines = [];
+                    wb.eachSheet((ws) => {
+                        lines.push(`■ ${ws.name}`);
+                        ws.eachRow({ includeEmpty: false }, (row) => {
+                            const vals = [];
+                            row.eachCell({ includeEmpty: false }, (cell) => {
+                                let v = cell.value;
+                                if (v instanceof Date) v = v.toISOString().slice(0, 10);
+                                else if (v && typeof v === 'object') {
+                                    if (Array.isArray(v.richText)) v = v.richText.map(t => t.text).join('');
+                                    else if (typeof v.text === 'string') v = v.text;
+                                    else if (v.result !== undefined) v = v.result;
+                                    else v = '';
+                                }
+                                v = (v === null || v === undefined) ? '' : String(v).trim();
+                                // 병합된 칸은 ExcelJS가 같은 값을 칸 수만큼 반복해서 돌려줍니다.
+                                // 이 앱의 공식 서식은 병합이 많아 그대로 두면 "제목 | 제목 | 제목"
+                                // 처럼 읽히므로, 바로 앞과 같은 값은 한 번만 남깁니다.
+                                if (v && v !== vals[vals.length - 1]) vals.push(v);
+                            });
+                            if (vals.length) lines.push(vals.join(' | '));
+                        });
+                        lines.push('');
+                    });
+                    let text = lines.join('\n').trim();
+                    if (text.length > maxChars) text = text.slice(0, maxChars) + '\n…(이하 생략 — 전체 내용은 엑셀 파일에서 확인해주세요)';
+                    return text;
+                } catch (e) {
+                    console.error('워크북 텍스트 변환 실패', e);
+                    return '';
+                }
             },
             // sheets: [{ name, header:[..], rows:[[..],[..]], widths:[..] }] - 실제 .xlsx 파일로 내보내기 (SheetJS)
             exportExcelFile(filename, sheets) {
@@ -3425,7 +3701,26 @@ API 키는 이 브라우저에만 저장되고 백업 파일에도 포함되지 
         // 규칙: 여기 등록되는 모든 migration 함수는 "필드 추가"만 하며,
         // 기존 필드 값은 절대 덮어쓰거나 삭제하지 않는다.
         // ============================================================
-        const DB_VERSION = 39; // v39(v5.31): 2026-09-13 v5.30 배포 후에도 "공유에 실패했습니다
+        // 화면·진단·오류 메시지에 함께 표시할 앱 버전. 사용자가 알려주는 오류 메시지만 보고도
+        // "어느 빌드에서 난 문제인지"를 알 수 있어야 해서 v5.32부터 상수로 분리했습니다.
+        const APP_VERSION = 'v5.32';
+
+        const DB_VERSION = 39; // v39(v5.32): 2026-09-13 v5.31의 "지금 공유" 배너로 재탭해도 같은
+        // NotAllowedError가 계속된다는 재제보 → v5.31의 "사용자 활성화 만료" 진단이 유일한 원인이
+        // 아님이 확인됨. Web Share 표준(w3c.github.io/web-share, MDN)상 NotAllowedError의 원인은
+        // ①web-share 권한정책 차단 ②사용자 활성화 없음 ③파일 형식의 보안상 차단 셋뿐이고,
+        // navigator.canShare()는 ③을 검사하지 않아 "canShare는 true인데 share는 실패"가 성립함.
+        // 앱 코드로는 셋을 구분할 수 없으므로 (가)원인과 무관하게 목적을 달성하게 하고
+        // (나)원인을 실기기에서 확정하는 두 갈래로 대응: 공유 실패 시 하단 배너 대신 공유 모달을
+        // 띄워 재시도·실패사유·대안(텍스트 공유/다운로드)·진단을 한 화면에 제공(_awaitShareDecision,
+        // shareAsTextFallback, downloadPendingShare), 엑셀 워크북을 읽을 수 있는 텍스트로 바꾸는
+        // workbookToText 추가(엑셀 공유 6곳·CSV 1곳에 연결), 그리고 텍스트/.txt/.xlsx 3단계를 실제로
+        // 시험하는 "공유 기능 진단"(runShareDiag, 마이페이지·공유 모달에서 진입) 신설. 부수 수정:
+        // canShare로 검사한 payload와 share로 보내는 payload가 달랐던 문제를 {files:[file]}로 통일
+        // (v5.30에서 넣은 title/text 동봉 제거), CSV 공유 시 File 타입을 파라미터 없는 'text/csv'로
+        // 정정, 공유 모달에서 "파일 다운로드"를 고른 백업도 백업 완료 시각에 반영, 오류 문구에 앱
+        // 버전 표기(APP_VERSION).
+        // v39(v5.31): 2026-09-13 v5.30 배포 후에도 "공유에 실패했습니다
         // (NotAllowedError)"가 계속된다는 재제보(정확한 오류명 확보) → 근본 원인 진단: NotAllowedError는
         // Web Share API의 "사용자 활성화(user activation, 탭 후 약 5초)"가 만료된 뒤 navigator.share()를
         // 호출하면 스펙상 항상 발생하는 오류다. 위험성평가·작업허가·TBM처럼 엑셀 서식이 복잡해(셀
@@ -9241,7 +9536,7 @@ ${continueFrom}
                     const buffer = await wb.xlsx.writeBuffer();
                     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     if (mode === 'share') {
-                        const result = await Utils.shareBlob(blob, `${label}_${todayStr}.xlsx`, blob.type, `${label} 엑셀 (${todayStr})`);
+                        const result = await Utils.shareBlob(blob, `${label}_${todayStr}.xlsx`, blob.type, `${label} 엑셀 (${todayStr})`, Utils.workbookToText(wb));
                         if (result === 'shared') Toast.show(`${label} 엑셀을 공유했습니다.`, 'success');
                     } else {
                         Utils.downloadBlob(blob, `${label}_${todayStr}.xlsx`);
@@ -9801,7 +10096,7 @@ ${continueFrom}
                     const buffer = await wb.xlsx.writeBuffer();
                     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     if (mode === 'share') {
-                        const result = await Utils.shareBlob(blob, `${filename}.xlsx`, blob.type, `${filename}.xlsx`);
+                        const result = await Utils.shareBlob(blob, `${filename}.xlsx`, blob.type, `${filename}.xlsx`, Utils.workbookToText(wb));
                         if (result === 'shared') Toast.show(`${filename}.xlsx 공유를 완료했습니다.`, 'success');
                     } else {
                         Utils.downloadBlob(blob, `${filename}.xlsx`);
@@ -9996,7 +10291,7 @@ ${continueFrom}
                     const buffer = await wb.xlsx.writeBuffer();
                     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     if (mode === 'share') {
-                        const result = await Utils.shareBlob(blob, `${filename}.xlsx`, blob.type, `${filename}.xlsx`);
+                        const result = await Utils.shareBlob(blob, `${filename}.xlsx`, blob.type, `${filename}.xlsx`, Utils.workbookToText(wb));
                         if (result === 'shared') Toast.show(`${filename}.xlsx 공유를 완료했습니다.`, 'success');
                     } else {
                         Utils.downloadBlob(blob, `${filename}.xlsx`);
@@ -10044,7 +10339,7 @@ ${continueFrom}
                         .replace(/[\\\/:?*\[\]"<>|]/g, ' ').trim().slice(0, 40) || label;
                     const filename = `${label}_${name}_${item.date || item.issueDate || item.appointDate || todayStr}.xlsx`;
                     if (mode === 'share') {
-                        const result = await Utils.shareBlob(blob, filename, blob.type, filename);
+                        const result = await Utils.shareBlob(blob, filename, blob.type, filename, Utils.workbookToText(wb));
                         if (result === 'shared') Toast.show('엑셀을 공유했습니다.', 'success');
                     } else {
                         Utils.downloadBlob(blob, filename);
@@ -11868,14 +12163,16 @@ ${continueFrom}
 
                 if (mode === 'share') {
                     const result = await Utils.shareBlob(blob, filename, 'application/json', filename);
-                    // shareBlob은 실패/미지원 시 이미 스스로 토스트를 띄우므로, 성공했을 때만
-                    // 여기서 "백업 완료" 시각을 갱신하고 안내합니다(하지 않은 백업을 했다고
+                    // shareBlob은 실패/미지원 시 이미 스스로 안내하므로, 실제로 파일이 기기 밖으로
+                    // 나간 경우에만 여기서 "백업 완료" 시각을 갱신합니다(하지 않은 백업을 했다고
                     // 기록하지 않기 위함 — 취소/실패 시에는 시각을 건드리지 않습니다).
-                    if (result === 'shared') {
+                    // v5.32: 공유 모달에서 "파일 다운로드"를 고른 경우('downloaded')도 백업 파일이
+                    // 실제로 기기에 저장된 것이므로 동일하게 백업으로 인정합니다.
+                    if (result === 'shared' || result === 'downloaded') {
                         localStorage.setItem(LAST_BACKUP_KEY, new Date().toISOString());
                         this.renderLastBackupIndicator();
                         this.renderBackupWarningBanner();
-                        Toast.show('백업 파일을 공유했습니다. (카카오톡 "나에게 보내기", 클라우드 등에 저장해두세요)', 'success');
+                        if (result === 'shared') Toast.show('백업 파일을 공유했습니다. (카카오톡 "나에게 보내기", 클라우드 등에 저장해두세요)', 'success');
                     }
                 } else {
                     Utils.downloadBlob(blob, filename);
@@ -12278,7 +12575,7 @@ ${continueFrom}
                     const buffer = await wb.xlsx.writeBuffer();
                     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     if (mode === 'share') {
-                        const result = await Utils.shareBlob(blob, `${label}_${todayStr}.xlsx`, blob.type, `${label} 엑셀 (${todayStr})`);
+                        const result = await Utils.shareBlob(blob, `${label}_${todayStr}.xlsx`, blob.type, `${label} 엑셀 (${todayStr})`, Utils.workbookToText(wb));
                         if (result === 'shared') Toast.show(`${label} 엑셀을 공유했습니다.`, 'success');
                     } else {
                         Utils.downloadBlob(blob, `${label}_${todayStr}.xlsx`);
