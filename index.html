@@ -1241,7 +1241,7 @@
                             <button onclick="Actions.exportBackupJSON('share')" title="백업 파일 공유" class="py-2 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1">
                                 📤 공유
                             </button>
-                            <input type="file" id="json-import-input" accept=".json" onchange="Actions.importBackupJSON(event)" class="hidden">
+                            <input type="file" id="json-import-input" accept=".json,.txt,application/json,text/plain" onchange="Actions.importBackupJSON(event)" class="hidden">
                             <button onclick="document.getElementById('json-import-input').click()" class="py-2 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-1">
                                 📁 복원
                             </button>
@@ -1296,7 +1296,7 @@
                         <button type="button" onclick="Utils.openShareDiagnostics()" class="w-full py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-[11px] font-bold rounded-xl transition-colors">🔎 공유 기능 진단</button>
                         <p class="text-[10px] text-slate-400 mt-1.5 leading-relaxed">엑셀·백업 파일 공유가 실패할 때, 이 기기에서 무엇이 막혀 있는지 확인합니다.</p>
                     </div>
-                    <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-200 mt-2">v5.32 · © 2026 SAFE DUCKY</div>
+                    <div class="text-[10px] text-slate-400 pt-1 border-t border-slate-200 mt-2">v5.33 · © 2026 SAFE DUCKY</div>
                 </div>
             </section>
 
@@ -1349,11 +1349,8 @@
                 <button type="button" id="share-modal-primary" onclick="Utils.confirmShareReady()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold rounded-xl transition-colors">📤 지금 공유하기</button>
                 <div id="share-modal-status" class="hidden text-[10px] leading-relaxed rounded-xl p-2.5 border"></div>
                 <div class="pt-2 border-t border-slate-100 space-y-2">
-                    <p class="text-[10px] text-slate-500">파일 공유가 계속 안 되면 아래 방법으로 보낼 수 있습니다.</p>
-                    <div class="grid grid-cols-2 gap-2">
-                        <button type="button" id="share-modal-text-btn" onclick="Utils.shareAsTextFallback()" class="py-2 bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold rounded-xl transition-colors">📄 텍스트로 공유</button>
-                        <button type="button" onclick="Utils.downloadPendingShare()" class="py-2 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition-colors">💾 파일 다운로드</button>
-                    </div>
+                    <p class="text-[10px] text-slate-500">크롬은 일부 파일 형식(.xlsx 등)의 공유를 정책상 막습니다. 아래 방법으로 보낼 수 있습니다.</p>
+                    <div id="share-modal-alts" class="grid grid-cols-2 gap-2"></div>
                     <button type="button" onclick="Utils.openShareDiagnostics()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[11px] font-bold rounded-xl transition-colors">🔎 공유 기능 진단 (원인 확인)</button>
                 </div>
             </div>
@@ -1374,6 +1371,8 @@
                     <button type="button" onclick="Utils.runShareDiag('text')" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition-colors">1) 텍스트 공유 테스트</button>
                     <button type="button" onclick="Utils.runShareDiag('txt')" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition-colors">2) 텍스트파일(.txt) 공유 테스트</button>
                     <button type="button" onclick="Utils.runShareDiag('xlsx')" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition-colors">3) 엑셀파일(.xlsx) 공유 테스트</button>
+                    <button type="button" onclick="Utils.runShareDiag('csv')" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition-colors">4) CSV파일(.csv) 공유 테스트</button>
+                    <button type="button" onclick="Utils.runShareDiag('html')" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition-colors">5) HTML파일(.html) 공유 테스트</button>
                 </div>
                 <div id="share-diag-results" class="space-y-1"></div>
                 <div>
@@ -1523,7 +1522,7 @@
                     <button onclick="Actions.clearAppCache()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[11px] rounded-xl transition-colors">🧹 캐시 삭제 후 새로고침</button>
                     <p class="text-[10px] text-slate-400 leading-tight">등록된 위험성평가·업무 등 데이터는 지워지지 않습니다. 앱 화면 파일만 다시 받아와 오래된 화면이 남아있는 문제를 해결할 때 씁니다.</p>
                 </div>
-                <p class="text-[10px] text-slate-400 leading-tight pt-2 border-t border-slate-100">사업장 정보·API 키·백업/복원·감사로그 등은 하단 <b>마이페이지</b> 탭에서 관리합니다.<br>SAFE DUCKY v5.32 · DB v39</p>
+                <p class="text-[10px] text-slate-400 leading-tight pt-2 border-t border-slate-100">사업장 정보·API 키·백업/복원·감사로그 등은 하단 <b>마이페이지</b> 탭에서 관리합니다.<br>SAFE DUCKY v5.33 · DB v39</p>
             </div>
         </div>
 
@@ -2108,14 +2107,22 @@
             //         'downloaded' | 'cancelled' | 'failed'
             // 호출한 쪽은 'shared'일 때만 "파일을 공유했습니다"라고 말해야 합니다
             // (실제로 하지 않은 일을 했다고 표시하지 않기 위함 — 프로젝트 원칙 1번).
-            async shareBlob(blob, filename, mimeType, shareText, textFallback) {
+            async shareBlob(blob, filename, mimeType, shareText, alternates) {
+                // 하위 호환: 예전처럼 문자열(텍스트 대안)만 넘어오면 {text}로 감쌉니다.
+                const alt = (typeof alternates === 'string') ? { text: alternates } : (alternates || null);
                 const file = this._makeShareableFile(blob, filename, mimeType);
                 if (file) {
                     // 파일 생성이 빨랐다면 이 한 번으로 끝나 탭 1번에 공유됩니다.
                     const firstTry = await this._tryShareNow(file);
                     if (firstTry === 'shared' || firstTry === 'cancelled') return firstTry;
                 }
-                return this._awaitShareDecision({ blob, file, filename, mimeType, textFallback });
+                return this._awaitShareDecision({ blob, file, filename, mimeType, alternates: alt });
+            },
+            _altValue(kind) {
+                const alt = this._pendingShare && this._pendingShare.alternates;
+                if (!alt || !alt[kind]) return '';
+                try { return typeof alt[kind] === 'function' ? alt[kind]() : alt[kind]; }
+                catch (e) { console.error('대안 형식 생성 실패', e); return ''; }
             },
             _awaitShareDecision(ctx) {
                 return new Promise((resolve) => {
@@ -2133,19 +2140,30 @@
                 const nameEl = document.getElementById('share-modal-filename');
                 const sizeEl = document.getElementById('share-modal-filesize');
                 const primary = document.getElementById('share-modal-primary');
-                const textBtn = document.getElementById('share-modal-text-btn');
                 if (nameEl) nameEl.textContent = p.filename || '';
                 if (sizeEl) sizeEl.textContent = p.blob ? `${Math.max(1, Math.round(p.blob.size / 1024))}KB` : '';
                 // 파일 공유 자체가 불가능한 환경이면 재시도 버튼을 눌러도 의미가 없으므로 감춥니다.
                 if (primary) primary.classList.toggle('hidden', !p.file);
-                // 텍스트 대안은 실제로 보낼 내용이 있을 때만 제공합니다(빈 내용을 보내지 않기 위함).
-                if (textBtn) textBtn.classList.toggle('hidden', !p.textFallback);
+                this._renderShareAltButtons();
                 this._setShareModalStatus(
                     p.file ? 'info' : 'error',
                     p.file
                         ? '파일이 준비되었습니다. 위 버튼을 눌러 공유해주세요.'
                         : '이 브라우저·기기는 파일 공유(Web Share Level 2) 자체를 지원하지 않습니다. 아래 대안을 이용해주세요.'
                 );
+            },
+            // 대안 버튼은 실제로 보낼 내용이 있는 형식만 만들어 보여줍니다(빈 버튼을 두지 않기 위함).
+            _renderShareAltButtons() {
+                const el = document.getElementById('share-modal-alts');
+                const p = this._pendingShare;
+                if (!el || !p) return;
+                const alt = p.alternates || {};
+                const btns = [];
+                if (alt.csv) btns.push(`<button type="button" onclick="Utils.shareAsFormat('csv')" class="py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded-xl transition-colors">📊 CSV로 공유<br><span class="font-semibold opacity-80">엑셀에서 열림</span></button>`);
+                if (alt.html) btns.push(`<button type="button" onclick="Utils.shareAsFormat('html')" class="py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold rounded-xl transition-colors">📄 서식 그대로 공유<br><span class="font-semibold opacity-80">HTML · 인쇄/PDF 가능</span></button>`);
+                if (alt.text) btns.push(`<button type="button" onclick="Utils.shareAsFormat('text')" class="py-2 bg-sky-600 hover:bg-sky-700 text-white text-[11px] font-bold rounded-xl transition-colors">💬 텍스트로 공유</button>`);
+                btns.push(`<button type="button" onclick="Utils.downloadPendingShare()" class="py-2 bg-slate-800 hover:bg-slate-900 text-white text-[11px] font-bold rounded-xl transition-colors">💾 원본 다운로드</button>`);
+                el.innerHTML = btns.join('');
             },
             _setShareModalStatus(kind, html) {
                 const el = document.getElementById('share-modal-status');
@@ -2174,24 +2192,51 @@
                 if (res === 'shared') { this._closeShareModal('shared'); return; }
                 if (res === 'cancelled') { this._closeShareModal('cancelled'); return; }
                 const name = (this._lastShareError && this._lastShareError.name) || '오류';
-                const why = name === 'NotAllowedError'
-                    ? '이 기기·브라우저가 파일 공유를 거부했습니다. 표준상 원인은 ①권한 정책 차단 ②사용자 동작 만료 ③파일 형식 보안 차단 셋 중 하나이며, 방금 직접 누르셨으므로 ②는 아닙니다. 아래 <b>공유 기능 진단</b>으로 정확한 원인을 확인할 수 있습니다.'
-                    : '파일 공유가 실패했습니다. 아래 대안을 이용해주세요.';
+                const ext = (String(p.filename).match(/\.[a-z0-9]+$/i) || [''])[0].toLowerCase();
+                const blockedFormat = (name === 'NotAllowedError' && !this.isSharePermittedName(p.filename));
+                let why;
+                if (blockedFormat) {
+                    // 확장자 자체가 크롬의 허용 목록에 없는 경우 — 재시도해도 절대 성공하지 않습니다.
+                    why = `크롬은 보안상 <b>${Utils.escapeHTML(ext)} 파일의 공유를 허용하지 않습니다</b>(브라우저 정책이라 앱에서 우회할 수 없습니다). 아래에서 <b>허용되는 형식</b>으로 보내시거나, 원본 파일이 꼭 필요하면 "원본 다운로드" 후 카카오톡의 "파일 첨부"로 보내주세요.`;
+                    const primary = document.getElementById('share-modal-primary');
+                    if (primary) primary.classList.add('hidden'); // 실패가 확정된 버튼은 감춥니다
+                } else if (name === 'NotAllowedError') {
+                    why = '이 기기·브라우저가 파일 공유를 거부했습니다. 아래 <b>공유 기능 진단</b>으로 정확한 원인을 확인할 수 있습니다.';
+                } else {
+                    why = '파일 공유가 실패했습니다. 아래 대안을 이용해주세요.';
+                }
                 this._setShareModalStatus('error', `공유 실패 (${Utils.escapeHTML(name)}) · ${APP_VERSION}<br>${why}`);
             },
-            // 파일이 안 되면 내용을 텍스트로라도 보냅니다. 텍스트 공유(Web Share Level 1)는
-            // 파일 공유보다 지원 범위가 훨씬 넓고, 이 사용자의 기기에서 동작이 확인된 방식입니다.
-            async shareAsTextFallback() {
+            // 원본 형식(.xlsx 등)이 막혔을 때, 크롬이 허용하는 형식으로 변환해 공유합니다.
+            // 이 함수는 사용자의 클릭 핸들러에서 곧바로 호출되므로 사용자 활성화가 유지됩니다.
+            async shareAsFormat(kind) {
                 const p = this._pendingShare;
-                if (!p || !p.textFallback) return;
+                if (!p) return;
+                const content = this._altValue(kind);
+                if (!content) { this._setShareModalStatus('error', '보낼 내용을 만들지 못했습니다. "원본 다운로드"를 이용해주세요.'); return; }
+                const base = (p.alternates && p.alternates.baseName) || String(p.filename || 'SAFE_DUCKY').replace(/\.[a-z0-9]+$/i, '');
                 try {
-                    await navigator.share({ text: p.textFallback });
-                    Toast.show('내용을 텍스트로 공유했습니다(파일이 아닌 요약 텍스트입니다).', 'success');
-                    this._closeShareModal('shared-text');
+                    if (kind === 'text') {
+                        await navigator.share({ text: content });
+                        Toast.show('내용을 텍스트로 공유했습니다(파일이 아닌 요약 텍스트입니다).', 'success');
+                        this._closeShareModal('shared-text');
+                        return;
+                    }
+                    const spec = kind === 'csv'
+                        ? { ext: '.csv', type: 'text/csv', label: 'CSV 파일' }
+                        : { ext: '.html', type: 'text/html', label: 'HTML 문서' };
+                    const file = new File([content], base + spec.ext, { type: spec.type });
+                    if (navigator.canShare && !navigator.canShare({ files: [file] })) {
+                        this._setShareModalStatus('error', `이 기기에서는 ${spec.label} 공유도 지원되지 않습니다. "원본 다운로드"를 이용해주세요.`);
+                        return;
+                    }
+                    await navigator.share({ files: [file] });
+                    Toast.show(`${spec.label}로 공유했습니다(원본 엑셀이 아닌 변환본입니다).`, 'success');
+                    this._closeShareModal('shared-alt');
                 } catch (e) {
                     if (e && e.name === 'AbortError') return; // 사용자가 공유창을 닫음 — 모달 유지
                     this._lastShareError = e;
-                    this._setShareModalStatus('error', `텍스트 공유도 실패했습니다 (${Utils.escapeHTML((e && e.name) || '오류')}). "파일 다운로드"를 이용해주세요.`);
+                    this._setShareModalStatus('error', `이 형식의 공유도 실패했습니다 (${Utils.escapeHTML((e && e.name) || '오류')}). "원본 다운로드"를 이용해주세요.`);
                 }
             },
             downloadPendingShare() {
@@ -2272,7 +2317,10 @@
                 return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             },
             async runShareDiag(kind) {
-                const labels = { text: '1) 텍스트 공유', txt: '2) .txt 파일 공유', xlsx: '3) .xlsx 파일 공유' };
+                const labels = {
+                    text: '1) 텍스트 공유', txt: '2) .txt 파일 공유', xlsx: '3) .xlsx 파일 공유',
+                    csv: '4) .csv 파일 공유', html: '5) .html 파일 공유'
+                };
                 const label = labels[kind] || kind;
                 if (!navigator.share) { this._pushShareDiag(label, '실패: 이 브라우저에 navigator.share 자체가 없습니다'); return; }
                 let payload;
@@ -2281,6 +2329,10 @@
                         payload = { text: 'SAFE DUCKY 공유 테스트' };
                     } else if (kind === 'txt') {
                         payload = { files: [new File(['SAFE DUCKY 공유 테스트'], '공유테스트.txt', { type: 'text/plain' })] };
+                    } else if (kind === 'csv') {
+                        payload = { files: [new File(['﻿항목,값\n테스트,1'], '공유테스트.csv', { type: 'text/csv' })] };
+                    } else if (kind === 'html') {
+                        payload = { files: [new File(['<!DOCTYPE html><meta charset="utf-8"><p>SAFE DUCKY 공유 테스트</p>'], '공유테스트.html', { type: 'text/html' })] };
                     } else {
                         // .xlsx는 실제 내보내기와 동일한 방식으로 만든 아주 작은 파일로 시험합니다.
                         const blob = await this._tinyXlsxBlob();
@@ -2326,6 +2378,160 @@
                 } catch (e) {
                     Toast.show('복사가 지원되지 않는 환경입니다. 이 화면을 캡처해서 보내주세요.', 'error');
                 }
+            },
+            // ============================================================
+            // v5.33: 크롬이 Web Share로 허용하는 파일 확장자 목록
+            // ------------------------------------------------------------
+            // 사용자 실기기 진단 결과(안드로이드 Chrome 152): 텍스트 공유 성공, .txt 파일 공유
+            // 성공, .xlsx 파일 공유만 "NotAllowedError — Permission denied"로 실패.
+            // 크로미움 원본(chrome/browser/webshare/share_service_impl.cc)의 IsDangerousFilename()은
+            // 아래 44개 확장자만 허용하고, 목록에 없으면 무조건 PERMISSION_DENIED를 반환합니다.
+            // .xlsx/.xls/.docx/.json/.zip은 목록에 없습니다 — 즉 재시도·MIME 변경·사용자 재탭
+            // 어느 것으로도 우회할 수 없고, "허용되는 형식으로 만들어 보내는 것"만이 해결책입니다.
+            // (검사 기준이 MIME이 아니라 "파일명이 이 확장자로 끝나는지"라는 점도 원본 코드 기준입니다.)
+            // iOS 등 다른 브라우저는 규칙이 다를 수 있으므로, 이 목록으로 미리 차단하지 않고
+            // 실제 공유를 먼저 시도한 뒤 실패했을 때 원인 설명·대안 제시에만 사용합니다.
+            // ============================================================
+            SHARE_PERMITTED_EXTENSIONS: ['.avif', '.bmp', '.css', '.csv', '.ehtml', '.flac', '.gif', '.htm', '.html', '.ico', '.jfif', '.jpeg', '.jpg', '.m4a', '.m4v', '.mp3', '.mp4', '.mpeg', '.mpg', '.oga', '.ogg', '.ogm', '.ogv', '.opus', '.pdf', '.pjp', '.pjpeg', '.png', '.shtm', '.shtml', '.svg', '.svgz', '.text', '.tif', '.tiff', '.txt', '.wav', '.weba', '.webm', '.webp', '.xbm'],
+            isSharePermittedName(filename) {
+                const lower = String(filename || '').toLowerCase();
+                return this.SHARE_PERMITTED_EXTENSIONS.some(ext => lower.endsWith(ext));
+            },
+            // 엑셀 셀 하나의 표시값을 문자열로 뽑아냅니다(수식 결과·서식문자·날짜·하이퍼링크 포함).
+            _cellText(cell) {
+                let v = cell.value;
+                if (v instanceof Date) return v.toISOString().slice(0, 10);
+                if (v && typeof v === 'object') {
+                    if (Array.isArray(v.richText)) v = v.richText.map(t => t.text).join('');
+                    else if (typeof v.text === 'string') v = v.text;
+                    else if (v.result !== undefined) v = v.result;
+                    else v = '';
+                }
+                return (v === null || v === undefined) ? '' : String(v).trim();
+            },
+            // 워크북 → CSV. 엑셀에서 그대로 열리고 .csv는 공유 허용 확장자입니다.
+            // 병합된 칸은 좌상단에만 값을 두어 원본의 칸 배치를 유지합니다.
+            workbookToCsv(wb) {
+                const escCsv = (s) => /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+                const lines = [];
+                const multi = wb.worksheets && wb.worksheets.length > 1;
+                wb.eachSheet((ws) => {
+                    if (multi) { lines.push(escCsv(`[${ws.name}]`)); }
+                    const maxCol = ws.columnCount || 1;
+                    ws.eachRow({ includeEmpty: true }, (row) => {
+                        const cells = [];
+                        for (let c = 1; c <= maxCol; c++) {
+                            const cell = row.getCell(c);
+                            // 병합 칸은 좌상단 칸에만 값을 남깁니다(엑셀에서 본 모양과 동일).
+                            if (cell.isMerged && cell.master && cell.master.address !== cell.address) { cells.push(''); continue; }
+                            cells.push(escCsv(this._cellText(cell)));
+                        }
+                        while (cells.length && cells[cells.length - 1] === '') cells.pop();
+                        lines.push(cells.join(','));
+                    });
+                    lines.push('');
+                });
+                // 엑셀이 한글을 깨뜨리지 않도록 BOM을 붙입니다(앱의 기존 CSV 내보내기와 동일).
+                return '﻿' + lines.join('\n');
+            },
+            // 워크북 → 단독 실행되는 HTML 문서. .html은 공유 허용 확장자이고, 병합·색·굵기·
+            // 정렬·열너비를 그대로 옮기므로 공식 서식의 모양이 유지됩니다. 받는 사람은 눌러서
+            // 바로 보고, 브라우저 인쇄에서 "PDF로 저장"을 고르면 PDF로도 만들 수 있습니다.
+            // (엑셀에 삽입된 사진은 이 변환에 포함되지 않습니다.)
+            workbookToHtml(wb, title) {
+                const esc = (s) => Utils.escapeHTML(String(s == null ? '' : s));
+                const argbToCss = (argb) => (argb && argb.length === 8) ? '#' + argb.slice(2) : (argb ? '#' + argb : '');
+                const sections = [];
+                wb.eachSheet((ws) => {
+                    const merges = {};
+                    const covered = new Set();
+                    const ranges = (ws.model && ws.model.merges) || [];
+                    ranges.forEach((r) => {
+                        const parts = String(r).split(':');
+                        if (parts.length !== 2) return;
+                        const a = ws.getCell(parts[0]);
+                        const b = ws.getCell(parts[1]);
+                        merges[a.address] = { cs: b.col - a.col + 1, rs: b.row - a.row + 1 };
+                        for (let rr = a.row; rr <= b.row; rr++) {
+                            for (let cc = a.col; cc <= b.col; cc++) {
+                                if (!(rr === a.row && cc === a.col)) covered.add(rr + ':' + cc);
+                            }
+                        }
+                    });
+                    const maxCol = ws.columnCount || 1;
+                    const colGroup = [];
+                    for (let c = 1; c <= maxCol; c++) {
+                        const w = (ws.getColumn(c) && ws.getColumn(c).width) || 10;
+                        colGroup.push(`<col style="width:${Math.round(w * 7)}px">`);
+                    }
+                    const rowsHtml = [];
+                    ws.eachRow({ includeEmpty: true }, (row, rowNumber) => {
+                        const tds = [];
+                        // 엑셀에서 칸 사이를 띄우려고 비워둔 줄은, 표 테두리가 그려지면 오히려
+                        // "빈 칸이 늘어선 줄"처럼 보입니다. 글자도 배경색도 없는 줄은 원본과 같이
+                        // 테두리 없는 여백 줄로 처리합니다.
+                        let hasContent = false;
+                        for (let c = 1; c <= maxCol && !hasContent; c++) {
+                            if (covered.has(rowNumber + ':' + c)) { hasContent = true; break; }
+                            const cc = row.getCell(c);
+                            if (this._cellText(cc)) hasContent = true;
+                            else if (cc.fill && cc.fill.fgColor && cc.fill.fgColor.argb) hasContent = true;
+                        }
+                        if (!hasContent) {
+                            rowsHtml.push(`<tr><td colspan="${maxCol}" style="border:none;height:8px"></td></tr>`);
+                            return;
+                        }
+                        for (let c = 1; c <= maxCol; c++) {
+                            if (covered.has(rowNumber + ':' + c)) continue;
+                            const cell = row.getCell(c);
+                            const mg = merges[cell.address];
+                            const styles = [];
+                            const fill = cell.fill && cell.fill.fgColor && cell.fill.fgColor.argb;
+                            if (fill) styles.push(`background:${argbToCss(fill)}`);
+                            if (cell.font) {
+                                if (cell.font.bold) styles.push('font-weight:700');
+                                if (cell.font.size) styles.push(`font-size:${cell.font.size}pt`);
+                                if (cell.font.color && cell.font.color.argb) styles.push(`color:${argbToCss(cell.font.color.argb)}`);
+                            }
+                            const al = cell.alignment || {};
+                            styles.push(`text-align:${al.horizontal === 'left' ? 'left' : al.horizontal === 'right' ? 'right' : 'center'}`);
+                            if (al.vertical) styles.push(`vertical-align:${al.vertical === 'top' ? 'top' : al.vertical === 'bottom' ? 'bottom' : 'middle'}`);
+                            const span = (mg ? `${mg.cs > 1 ? ` colspan="${mg.cs}"` : ''}${mg.rs > 1 ? ` rowspan="${mg.rs}"` : ''}` : '');
+                            const text = esc(this._cellText(cell)).replace(/\n/g, '<br>');
+                            tds.push(`<td${span} style="${styles.join(';')}">${text || '&nbsp;'}</td>`);
+                        }
+                        rowsHtml.push(`<tr>${tds.join('')}</tr>`);
+                    });
+                    sections.push(`<h2>${esc(ws.name)}</h2><table><colgroup>${colGroup.join('')}</colgroup>${rowsHtml.join('')}</table>`);
+                });
+                return `<!DOCTYPE html>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(title || 'SAFE DUCKY 문서')}</title>
+<style>
+  body { font-family:'Malgun Gothic','Apple SD Gothic Neo','Noto Sans KR',sans-serif; color:#1e293b; padding:16px; margin:0; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  h2 { font-size:14px; margin:18px 0 6px; }
+  .meta { color:#64748b; font-size:11px; margin-bottom:12px; }
+  .wrap { overflow-x:auto; }
+  table { border-collapse:collapse; font-size:11px; table-layout:fixed; }
+  td { border:1px solid #94a3b8; padding:4px 6px; word-break:break-word; }
+  @media print { body { padding:0; } }
+</style></head>
+<body>
+<h1>${esc(title || 'SAFE DUCKY 문서')}</h1>
+<div class="meta">SAFE DUCKY ${APP_VERSION} · 브라우저 인쇄에서 "PDF로 저장"을 고르면 PDF로 만들 수 있습니다.</div>
+<div class="wrap">${sections.join('')}</div>
+</body></html>`;
+            },
+            // 엑셀 내보내기 6곳이 공통으로 쓰는 "대안 형식" 묶음. 실제로 대안을 고를 때만
+            // 변환이 일어나도록 함수로 넘겨(지연 생성), 평소 공유 속도에 영향을 주지 않습니다.
+            workbookAlternates(wb, baseName) {
+                return {
+                    baseName: baseName,
+                    text: () => this.workbookToText(wb),
+                    csv: () => this.workbookToCsv(wb),
+                    html: () => this.workbookToHtml(wb, baseName)
+                };
             },
             // ExcelJS 워크북을 읽을 수 있는 텍스트로 변환합니다(파일 공유가 막혔을 때의 대안).
             // 카카오톡 등으로 보내기 적당하도록 길이를 제한합니다.
@@ -3703,9 +3909,26 @@ API 키는 이 브라우저에만 저장되고 백업 파일에도 포함되지 
         // ============================================================
         // 화면·진단·오류 메시지에 함께 표시할 앱 버전. 사용자가 알려주는 오류 메시지만 보고도
         // "어느 빌드에서 난 문제인지"를 알 수 있어야 해서 v5.32부터 상수로 분리했습니다.
-        const APP_VERSION = 'v5.32';
+        const APP_VERSION = 'v5.33';
 
-        const DB_VERSION = 39; // v39(v5.32): 2026-09-13 v5.31의 "지금 공유" 배너로 재탭해도 같은
+        const DB_VERSION = 39; // v39(v5.33): 2026-09-13 v5.32의 "공유 기능 진단"을 사용자가 실기기
+        // (안드로이드 Chrome 152, https 호스팅, 홈화면 설치 상태)에서 실행한 결과로 원인 확정:
+        // 텍스트 공유 성공 / .txt 파일 공유 성공 / .xlsx 파일 공유만 "NotAllowedError — Permission
+        // denied". 즉 v5.32에서 정리한 3가지 원인 중 ③(파일 형식의 보안상 차단)이 확정됨.
+        // 크로미움 원본(chrome/browser/webshare/share_service_impl.cc)의 IsDangerousFilename()은
+        // 44개 확장자만 허용하며 .xlsx·.xls·.docx·.json·.zip은 목록에 없어 무조건 PERMISSION_DENIED를
+        // 반환합니다(검사 기준은 MIME이 아니라 파일명 끝의 확장자). 따라서 재시도·MIME 변경·재탭
+        // 어느 것으로도 우회 불가이며, "허용되는 형식으로 만들어 보내는 것"이 유일한 해결책입니다.
+        // 대응: ①크로미움 허용 확장자 목록을 상수화(SHARE_PERMITTED_EXTENSIONS)해 실패가 확정된
+        // 재시도 버튼을 감추고 정확한 사유를 안내 ②ExcelJS 워크북을 허용 형식으로 변환하는
+        // workbookToCsv(엑셀에서 그대로 열림)·workbookToHtml(병합·색·굵기·정렬·열너비를 옮겨
+        // 공식 서식 모양 유지, 받는 사람이 인쇄에서 "PDF로 저장" 가능) 추가 ③공유 모달에
+        // "CSV로 공유 / 서식 그대로 공유(HTML) / 텍스트로 공유 / 원본 다운로드"를 제공
+        // (workbookAlternates로 엑셀 내보내기 5개 경로에 일괄 연결, 실제 선택 시에만 변환하는 지연
+        // 생성) ④백업(.json)도 같은 이유로 막히므로 공유할 때만 .txt 이름으로 보내고 복원 파일
+        // 선택이 .txt도 받도록 확장(복원 로직은 원래 내용을 읽어 JSON으로 해석하므로 영향 없음)
+        // ⑤진단에 .csv/.html 시험 추가. 엑셀에 삽입된 사진은 HTML 변환에 포함되지 않습니다.
+        // v39(v5.32): 2026-09-13 v5.31의 "지금 공유" 배너로 재탭해도 같은
         // NotAllowedError가 계속된다는 재제보 → v5.31의 "사용자 활성화 만료" 진단이 유일한 원인이
         // 아님이 확인됨. Web Share 표준(w3c.github.io/web-share, MDN)상 NotAllowedError의 원인은
         // ①web-share 권한정책 차단 ②사용자 활성화 없음 ③파일 형식의 보안상 차단 셋뿐이고,
@@ -9536,7 +9759,7 @@ ${continueFrom}
                     const buffer = await wb.xlsx.writeBuffer();
                     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     if (mode === 'share') {
-                        const result = await Utils.shareBlob(blob, `${label}_${todayStr}.xlsx`, blob.type, `${label} 엑셀 (${todayStr})`, Utils.workbookToText(wb));
+                        const result = await Utils.shareBlob(blob, `${label}_${todayStr}.xlsx`, blob.type, `${label} 엑셀 (${todayStr})`, Utils.workbookAlternates(wb, `${label}_${todayStr}`));
                         if (result === 'shared') Toast.show(`${label} 엑셀을 공유했습니다.`, 'success');
                     } else {
                         Utils.downloadBlob(blob, `${label}_${todayStr}.xlsx`);
@@ -10096,7 +10319,7 @@ ${continueFrom}
                     const buffer = await wb.xlsx.writeBuffer();
                     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     if (mode === 'share') {
-                        const result = await Utils.shareBlob(blob, `${filename}.xlsx`, blob.type, `${filename}.xlsx`, Utils.workbookToText(wb));
+                        const result = await Utils.shareBlob(blob, `${filename}.xlsx`, blob.type, `${filename}.xlsx`, Utils.workbookAlternates(wb, filename));
                         if (result === 'shared') Toast.show(`${filename}.xlsx 공유를 완료했습니다.`, 'success');
                     } else {
                         Utils.downloadBlob(blob, `${filename}.xlsx`);
@@ -10291,7 +10514,7 @@ ${continueFrom}
                     const buffer = await wb.xlsx.writeBuffer();
                     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     if (mode === 'share') {
-                        const result = await Utils.shareBlob(blob, `${filename}.xlsx`, blob.type, `${filename}.xlsx`, Utils.workbookToText(wb));
+                        const result = await Utils.shareBlob(blob, `${filename}.xlsx`, blob.type, `${filename}.xlsx`, Utils.workbookAlternates(wb, filename));
                         if (result === 'shared') Toast.show(`${filename}.xlsx 공유를 완료했습니다.`, 'success');
                     } else {
                         Utils.downloadBlob(blob, `${filename}.xlsx`);
@@ -10339,7 +10562,7 @@ ${continueFrom}
                         .replace(/[\\\/:?*\[\]"<>|]/g, ' ').trim().slice(0, 40) || label;
                     const filename = `${label}_${name}_${item.date || item.issueDate || item.appointDate || todayStr}.xlsx`;
                     if (mode === 'share') {
-                        const result = await Utils.shareBlob(blob, filename, blob.type, filename, Utils.workbookToText(wb));
+                        const result = await Utils.shareBlob(blob, filename, blob.type, filename, Utils.workbookAlternates(wb, filename.replace(/\.xlsx$/i, '')));
                         if (result === 'shared') Toast.show('엑셀을 공유했습니다.', 'success');
                     } else {
                         Utils.downloadBlob(blob, filename);
@@ -12162,7 +12385,13 @@ ${continueFrom}
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
 
                 if (mode === 'share') {
-                    const result = await Utils.shareBlob(blob, filename, 'application/json', filename);
+                    // v5.33: .json도 크롬의 공유 허용 확장자 목록에 없어 공유가 거부됩니다.
+                    // 백업 파일은 내용이 그냥 텍스트(JSON)이므로, 공유할 때만 .txt 이름으로 보냅니다
+                    // (허용 확장자). 복원 화면의 파일 선택도 .txt를 받도록 함께 넓혔고, 복원 로직은
+                    // 원래부터 파일 내용을 읽어 JSON으로 해석하므로 확장자와 무관하게 동작합니다.
+                    // 다운로드(기본)는 지금까지처럼 .json 그대로 저장됩니다.
+                    const shareName = filename.replace(/\.json$/i, '.txt');
+                    const result = await Utils.shareBlob(blob, shareName, 'text/plain', shareName);
                     // shareBlob은 실패/미지원 시 이미 스스로 안내하므로, 실제로 파일이 기기 밖으로
                     // 나간 경우에만 여기서 "백업 완료" 시각을 갱신합니다(하지 않은 백업을 했다고
                     // 기록하지 않기 위함 — 취소/실패 시에는 시각을 건드리지 않습니다).
@@ -12575,7 +12804,7 @@ ${continueFrom}
                     const buffer = await wb.xlsx.writeBuffer();
                     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
                     if (mode === 'share') {
-                        const result = await Utils.shareBlob(blob, `${label}_${todayStr}.xlsx`, blob.type, `${label} 엑셀 (${todayStr})`, Utils.workbookToText(wb));
+                        const result = await Utils.shareBlob(blob, `${label}_${todayStr}.xlsx`, blob.type, `${label} 엑셀 (${todayStr})`, Utils.workbookAlternates(wb, `${label}_${todayStr}`));
                         if (result === 'shared') Toast.show(`${label} 엑셀을 공유했습니다.`, 'success');
                     } else {
                         Utils.downloadBlob(blob, `${label}_${todayStr}.xlsx`);
